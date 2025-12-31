@@ -11,6 +11,8 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       - CELERY_BROKER_URL=redis://broker:6379/0
       - CELERY_RESULT_BACKEND=redis://broker:6379/0
+    volumes:
+      - ./backend:/app
     depends_on:
       db:
         condition: service_healthy  # Wait for DB to be actually ready, not just started
@@ -31,6 +33,8 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       - CELERY_BROKER_URL=redis://broker:6379/0
       - CELERY_RESULT_BACKEND=redis://broker:6379/0
+    volumes:
+      - ./backend:/app
     depends_on:
       api-gateway:
         condition: service_started
