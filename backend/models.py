@@ -59,3 +59,22 @@ class Transaction(Base):
     owner = relationship("User", back_populates="transactions")
     vendor = relationship("Vendor", back_populates="transactions")
     source_document = relationship("RawDocument", back_populates="transactions")
+
+class Alert(Base):
+    __tablename__ = "alerts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    
+    user_id = Column(Integer, ForeignKey("users.id"))
+    
+    transaction_id = Column(Integer, ForeignKey("transactions.id"), nullable=True)
+
+    type = Column(String, index=True)  # e.g., "arbitrage", "inflation", "duplicate"
+    severity = Column(String)          # e.g., "low", "medium", "critical"
+    message = Column(String)           # e.g., "Netflix price increased by $2.00"
+    
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    owner = relationship("User", back_populates="alerts")
+    related_transaction = relationship("Transaction", back_populates="alerts")
