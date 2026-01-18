@@ -5,7 +5,7 @@ cpp_args = ['-std=c++11']
 
 ext_modules = [
     Extension(
-        'wealthguard_crypto',
+        'netflow_crypto',
         ['cpp_src/crypto_module.cpp'],
         include_dirs=[pybind11.get_include()],
         language='c++',
@@ -14,9 +14,9 @@ ext_modules = [
 ]
 
 setup(
-    name='wealthguard_crypto',
+    name='netflow_crypto',
     version='0.1.0',
-    author='WealthGuard Team',
+    author='NetFlow Team',
     description='C++ Extension for Encryption',
     ext_modules=ext_modules,
 )

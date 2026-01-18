@@ -8,7 +8,7 @@ BACKEND_URL = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/0")
 
 # Initialize the Celery App
 celery_app = Celery(
-    "wealthguard_worker",
+    "netflow_worker",
     broker=BROKER_URL,
     backend=BACKEND_URL
 )

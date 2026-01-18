@@ -29,7 +29,7 @@ py::bytes decrypt_wrapper(const std::string& encrypted_data, const std::string& 
 }
 
 // Pybind11 Module Definition
-PYBIND11_MODULE(wealthguard_crypto, m) {
-    m.doc() = "WealthGuard High-Performance C++ Cryptography Module";
+PYBIND11_MODULE(netflow_crypto, m) {
+    m.doc() = "NetFlow High-Performance C++ Cryptography Module";
     m.def("decrypt", &decrypt_wrapper, "A memory-safe decryption function");
 }
