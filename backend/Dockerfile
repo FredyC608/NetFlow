@@ -10,6 +10,8 @@ RUN apt-get update && apt-get install -y \
     cmake \             
     libpq-dev \
     postgresql-client \
+    tesseract-ocr \
+    libtesseract-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install them
