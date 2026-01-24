@@ -18,10 +18,14 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of your backend code
-COPY . .
+# Copy C++ source files and setup script for building the extension (Helps with caching)
+COPY cpp_src/ ./cpp_src/
+COPY setup.py .
 
 RUN pip install .
+
+# Copy all other application files
+COPY . .
 
 # (Optional) Default command, though docker-compose usually overrides this
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
