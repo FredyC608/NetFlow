@@ -1,9 +1,16 @@
 import os
 import shutil
 import uuid
-from fastapi import FastAPI, UploadFile, File, HTTPException
+
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
 from celery.result import AsyncResult
 from worker import ocr_task, celery_app  # Importing the Celery task signature
+
+# Phase 2 Imports
+from sqlalchemy.orm import Session
+from database import get_db
+from models import RawDocument
+
 app = FastAPI()
 
 # Ensure we have a shared directory to store uploads
@@ -15,7 +22,11 @@ def health_check():
     return {"status": "NetFlow API is running"}
 
 @app.post("/upload")
-async def upload_document(file: UploadFile = File(...), key: str = "secret_key"):
+async def upload_document(
+    file: UploadFile = File(...), 
+    key: str = "secret_key",
+    db: Session = Depends(get_db)
+    ):
     """
     1. Receive the encrypted file stream.
     2. Save it to disk (Shared Volume).
@@ -34,37 +45,41 @@ async def upload_document(file: UploadFile = File(...), key: str = "secret_key")
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # 2. Dispatch the task to Celery (Redis)
-        # We pass the PATH, not the bytes. Redis cannot handle large blobs efficiently.
-        task = ocr_task.delay(file_path, key)
+        #2. Step 2: Create "Job Ticket" in PostGres
+        doc_to_upload = RawDocument(
+            user_id = 1,
+            filename = file.filename, 
+            file_path = file_path, 
+            processed = False
+        )
+
+        db.add(doc_to_upload)
+        db.commit()
+        db.refresh(doc_to_upload)
+
+        #3. Dispatch to Celery -> Now passing the database ID
+        task = ocr_task.delay(doc_to_upload.id, file_path, key)
 
         return {
             "message": "File uploaded and processing started.",
             "task_id": task.id,
-            "file_id": file_id,
+            "file_id": doc_to_upload.id,
             "status_check_url": f"/status/{task.id}"
         }
 
     except Exception as e:
         # Clean up file if dispatch failed
-        if os.path.exists(file_path):
+        if 'file_path' in locals() and os.path.exists(file_path):
             os.remove(file_path)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/status/{task_id}")
 def get_status(task_id: str):
+    
     task_result = AsyncResult(task_id, app=celery_app)
     
-    response = {
+    return {
         "task_id": task_id,
         "status": task_result.status,
+        "result": task_result.result if task_result.status == "SUCCESS" else None
     }
-
-    # If the task finished successfully, include the result
-    if task_result.status == "SUCCESS":
-        response["result"] = task_result.result
-    # If it failed, include the error
-    elif task_result.status == "FAILURE":
-        response["error"] = str(task_result.result)
-
-    return response

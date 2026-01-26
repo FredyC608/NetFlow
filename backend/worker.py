@@ -3,6 +3,10 @@ import time
 from celery import Celery
 import netflow_crypto  # The C++ module
 
+# Phase 2 Imports
+from database import SessionLocal # Import Session factory
+from models import RawDocument
+
 # 1. Configuration
 BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://broker:6379/0")
 BACKEND_URL = os.getenv("CELERY_RESULT_BACKEND", "redis://broker:6379/0")
@@ -15,12 +19,15 @@ celery_app = Celery(
 
 # 2. The Real Task Logic
 @celery_app.task(name="ocr_task")
-def ocr_task(file_path: str, key: str):
+def ocr_task(doc_id: int, file_path: str, key: str):
     """
     1. Read encrypted file from shared volume.
     2. Decrypt using C++ module (in memory).
     3. (Future) Pass decrypted bytes to OCR.
     """
+
+    db = SessionLocal()
+
     try:
         # Step A: Validate file exists
         if not os.path.exists(file_path):
@@ -37,6 +44,11 @@ def ocr_task(file_path: str, key: str):
         
         # Call the C++ function
         decrypted_bytes = netflow_crypto.decrypt(encrypted_data, key)
+        doc = db.query(RawDocument).filter(RawDocument.id == doc_id).first()
+
+        if doc:
+            doc.processed = True
+            db.commit()
         
         duration = time.time() - start_time
 
@@ -53,4 +65,7 @@ def ocr_task(file_path: str, key: str):
         }
 
     except Exception as e:
+        db.rollback()
         return {"status": "failure", "error": str(e)}
+    finally: 
+        db.close()
