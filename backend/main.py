@@ -4,7 +4,7 @@ import uuid
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
 from celery.result import AsyncResult
-from worker import ocr_task, celery_app  # Importing the Celery task signature
+from worker import proc_csv_task, celery_app  # Importing the Celery task signature
 
 # Phase 2 Imports
 from sqlalchemy.orm import Session
@@ -58,10 +58,10 @@ async def upload_document(
         db.refresh(doc_to_upload)
 
         #3. Dispatch to Celery -> Now passing the database ID
-        task = ocr_task.delay(doc_to_upload.id, file_path, key)
+        task = proc_csv_task.delay(doc_to_upload.id, file_path, key)
 
         return {
-            "message": "File uploaded and processing started.",
+            "message": "CSV uploaded and processing started.",
             "task_id": task.id,
             "file_id": doc_to_upload.id,
             "status_check_url": f"/status/{task.id}"
